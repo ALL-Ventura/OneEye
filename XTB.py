@@ -112,4 +112,21 @@ class XTB():
             
 
 
+# Sample code --- see output in /sample data
 
+api = XTB()
+
+api.get("trades")
+api.get("margin")
+api.get("symbols")
+
+t.save_as_json(api.data)
+
+api.parse()
+
+t.save_as_csv(api.trades)
+t.save_as_csv(api.margin)
+t.save_as_csv(api.symbols)
+
+
+api.logout()
