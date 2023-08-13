@@ -1,0 +1,8 @@
+{
+    "headers" : { "Authorization": "YOU APIKEY (FROM T212 APP > SETTINGS > API (BETA)"},
+    "cash" : "https://live.trading212.com/api/v0/equity/account/cash",
+    "portfolio": "https://live.trading212.com/api/v0/equity/portfolio",
+    "pies": "https://live.trading212.com/api/v0/equity/pies",
+    "instruments": "https://live.trading212.com/api/v0/equity/metadata/instruments"
+}
+
