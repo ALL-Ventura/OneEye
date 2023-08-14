@@ -69,8 +69,8 @@ class T212():
 
                 # IMPORT LABELS AND MERGE DFS                
 
-                instrument_label_path = os.path.join(os.path.abspath("./"), "resources", "T212_Labels.xlsx")            
-                label_df = pd.read_excel(instrument_label_path)[["ticker", "currencyCode", "name"]]
+                instrument_label_path = os.path.join(os.path.abspath("./"), "resources", "T212_Labels.csv")            
+                label_df = pd.read_csv(instrument_label_path)[["ticker", "currencyCode", "name"]]
 
                 df = pd.merge(df, label_df, on= "ticker", how="inner")
 
@@ -126,5 +126,22 @@ class T212():
             setattr(self,command, df)
 
 
+# SAMPLE CODE
 
+api = T212()
 
+api.get("cash")
+api.get("portfolio")
+api.get("pies")
+api.get("instruments")
+api.parse()
+
+with open("t212_allData.json", "w") as save_file:
+    json.dump(api.data, save_file, indent=4)
+
+api.cash.to_excel("t212_cash.xlsx")
+api.portfolio.to_excel("t212_portfolio.xlsx")
+api.pies.to_excel("t212_pies.xlsx")
+api.instruments.to_csv("t212_instruments.csv")
+
+# Output stored in Sample data (redacted)

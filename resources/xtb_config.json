@@ -1,0 +1,39 @@
+{       
+"login":
+        {
+        "command": "login",
+        "arguments": 
+                {
+                "userId": "7 DIGITS USER ID IN THE XSTATION",
+                "password": "YOUR LOGIN PASSWORD"
+                 },
+        "customTag": "Logged in successfully"
+        },
+"logout": 
+        {
+        "command": "logout",
+        "customTag": "Logged out successfully"
+        },
+
+
+
+"margin":
+        {
+        "command": "getMarginLevel"
+        },
+"trades":
+        {
+        "command": "getTrades",
+        "arguments": 
+                {
+                "openedOnly": true
+                }
+        },
+"symbols":
+        {
+	      "command": "getAllSymbols"
+        }
+
+}
+
+
