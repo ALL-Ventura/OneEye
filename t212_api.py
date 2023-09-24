@@ -31,6 +31,16 @@ class T212():
         with open (config_path) as r_file:
             self.resources = json.load(r_file)
 
+
+    def _get_data(self, command) -> json:
+        """
+        Makes a request to the api endpoint and returns a json file
+        """
+        response = requests.get(self.resources[command], headers = self.resources["headers"])
+        response.raise_for_status()
+        return response.json()
+
+
     @property
     def cash(self) -> json:
         """
@@ -43,33 +53,23 @@ class T212():
 
     @property
     def instruments (self) -> json:
-        """
-        Makes a request to the api endpoint and returns a json file
-        """
-        response = requests.get(self.resources["instruments"], headers = self.resources["headers"])
-        response.raise_for_status()
-        return response.json()
+        return self._get_data("instruments")
   
 
     @property
     def pies (self) -> json:
-        """
-        Makes a request to the api endpoint and returns a json file
-        """
-        response = requests.get(self.resources["pies"], headers = self.resources["headers"])
-        response.raise_for_status()
-        return response.json()
+        return self._get_data("pies")
 
 
     @property
     def portfolio(self) -> json:
-        """
-        Makes a request to the api endpoint and returns a json file
-        """
-        response = requests.get(self.resources["portfolio"], headers = self.resources["headers"])
-        response.raise_for_status()
-        return response.json()
+        return self._get_data("portfolio")
+       
+    
 
+
+
+        
  
     def parse_cash(self, cash: json, custom=False) -> DataFrame:
         """
@@ -181,12 +181,17 @@ class T212():
  
     def control(self, cash:bool=False, portfolio:bool=False, pies:bool=False, instruments:bool=False, parse:bool=False, custom_parse:bool=False) -> dict [str, str|float|DataFrame]:
         """"
-        This method controls the entire class in one go.
-       Args: choose which data you want to retrieve + if you want to parse it
+        This method controls the entire class in one go. \n
+        Cash: requests the cash \n
+        Portfolio: requestst the portfolio \n
+        instuments: requests the insturments \n
+        parse: parses the requested data into dataframes \n
+        custom_parse: runs the optional block of code in the parse functions \n
+         \n
+        **settings = {"cash": True, "instruments": False, "portfolio": True, "pies": True, "parse": True, "custom_parse": True, } \n
+         \n
+       Returns a dictionary containing the requested json data or Dataframes (if parsed) \n
 
-       Returns a dictionary containing the requested json data.
-
-       The dictionary will contain DataFrames if parse == True
         """
         output = {}
 
@@ -219,7 +224,6 @@ class T212():
             output["portfolio"] = portfolio_data
         
         return output
-
        
 
 # SAMPLE CODE
@@ -238,18 +242,18 @@ pies = t212.parse_pies(pies, custom=True)
 
 # 2 - Control Function
   
-settings = {
-    "cash": True,
-    "instruments": False,
-    "portfolio": True,
-    "pies": True,
-    "parse": True,
-    "custom_parse": True,
-    }
 
-    data_dict = t212.control(**settings)
-     # This will return a dictionary with 3 dataframes:
-     #{"cash": DataFrame,
-     #"portfolio": DataFrame,
-     #"pies": DataFrame,}
-    
+t212_settings = {
+                "cash": True,
+                "instruments": False,
+                "portfolio": True,
+                "pies": True,
+                "parse": True,
+                "custom_parse": True,
+                }
+t212_dict = t212.control(**t212_settings)
+# This will return a dictionary with 3 dataframes:
+#{"cash": DataFrame,
+#"portfolio": DataFrame,
+#"pies": DataFrame,}
+
