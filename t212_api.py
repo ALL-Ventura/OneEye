@@ -240,13 +240,13 @@ class T212():
 t212 = T212()
 
 # 1- Individual Properties
-cash = t212.cash # Cash = Json dict with the cash data
+cash = t212.cash # Cash = Dictionary with the cash data
 cash = t212.parse_cash(cash, custom=False) # Cash = DataFrame with  cash data
 
-portfolio = t212.portfolio # portfolio = json dict with portfolio data
+portfolio = t212.portfolio # portfolio = Dictionary with portfolio data
 portofio = t212.parse_portfolio(portfolio, custom=False) # portfolio = DataFrame with portfolio data
 
-pies = t212.pies # pies = json dict with the pies data
+pies = t212.pies # pies = Dictionary with the pies data
 pies = t212.parse_pies(pies, custom=False) # pies = DataFrame with the pies data
 
 
