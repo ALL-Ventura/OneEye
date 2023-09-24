@@ -1,147 +1,255 @@
-import requests
 import json
-import pandas as pd
 import modules.tools as t
 import os
+import pandas as pd
+import requests
+
+from pandas import DataFrame
 
 
 # Read the api documentation for more info: https://t212public-api-docs.redoc.ly/
 
 class T212():
 
-    def __init__(self) -> None:
-        self.resources = ""
-        self.headers = ""
-        self.data = {}
-        self.fetch_resources()
+    """
+    This class requests information from the Trading 212 endpoins using one API key.
+    Please fill the API KEY on the config file.
 
-    def fetch_resources(self):
+    You can retrieve data by calling properties individually or by using the control method.
+    
+    Parsing functions have a default and an optional block of code for customizability.
+    
+    """
+
+    def __init__(self) -> None:
+        self.resources = None
+        self._fetch_resources()
+   
+
+    def _fetch_resources(self):
         config_path = os.path.join(os.path.abspath("./"), "resources", "t212_config.json")
         with open (config_path) as r_file:
             self.resources = json.load(r_file)
-        self.headers = self.resources["headers"]
-    
-    def get(self, input:str):
+
+    @property
+    def cash(self) -> json:
         """
-        Uses commands to request data from the API endpoint.
-        Available commands: \n
-        instruments = returns all the securities available (>8k entries!).\n
-        portfolio = returns the securities held.\n
-        cash = returns the current cash balances.\n
-        pies = returns details of the account pies. 
+        Makes a request to the api endpoint and returns a json file
         """
-        command = input.lower()
-        if command in self.resources:
-            response = requests.get(self.resources[command], headers = self.headers)
-            response.raise_for_status()
-            self.data[command] = response.json()
-        else:
-            raise KeyError("Invalid command!")
-    def parse(self):
+        response = requests.get(self.resources["cash"], headers = self.resources["headers"])
+        response.raise_for_status()
+        return response.json()
+
+
+    @property
+    def instruments (self) -> json:
         """
-        Parses the data stored in self.data into DatadFrames.
-        Use it after storing all the data you need
-        """   
-        if self.data == {}:
-            raise ValueError ("No data stored in the Class")
-        
-        # AVAILABLE COMMANDS
-        INSTRUMENTS_CMD = "instruments"
-        PORTFOLIO_CMD = "portfolio"
-        CASH_CMD = "cash"
-        PIES_CMD = "pies"
-        
-        for command in self.data:
+        Makes a request to the api endpoint and returns a json file
+        """
+        response = requests.get(self.resources["instruments"], headers = self.resources["headers"])
+        response.raise_for_status()
+        return response.json()
+  
 
-            # PARSE INSTRUMENTS ----------------------------------
-            if command == INSTRUMENTS_CMD:
-                df = pd.DataFrame(self.data[command])
+    @property
+    def pies (self) -> json:
+        """
+        Makes a request to the api endpoint and returns a json file
+        """
+        response = requests.get(self.resources["pies"], headers = self.resources["headers"])
+        response.raise_for_status()
+        return response.json()
 
 
-            # PARSE PORTFOLIO ----------------------------------
-            if command == PORTFOLIO_CMD:
-                df = pd.DataFrame(self.data[command])
-               # OPTIONAL CODE BELOW! THIS IS JUST HOW I LIKE TO PARSE MY DATA!
+    @property
+    def portfolio(self) -> json:
+        """
+        Makes a request to the api endpoint and returns a json file
+        """
+        response = requests.get(self.resources["portfolio"], headers = self.resources["headers"])
+        response.raise_for_status()
+        return response.json()
 
-                df = df[df["frontend"] != "AUTOINVEST"]
-                df['asset'] = ["Corporate equity"] * len(df)
-                df["value"] = df["quantity"] * df["currentPrice"]
+ 
+    def parse_cash(self, cash: json, custom=False) -> DataFrame:
+        """
+        Parses the Json file into a Dataframe.
+        Args: 
+        Cash = cash data json file 
+        Custom = set to true to run the optional block of code
+        """
+        df = DataFrame.from_dict(cash, orient="index", columns=["Value"]).T
 
-                # IMPORT LABELS AND MERGE DFS                
+        if custom is True:
+        # CUSTOMIZABLE DATA PROCESSING
+            df = df ["free"].reset_index()
+            df.loc[0, "index"] = "Cash"
 
-                instrument_label_path = os.path.join(os.path.abspath("./"), "resources", "T212_Labels.csv")            
-                label_df = pd.read_csv(instrument_label_path)[["ticker", "currencyCode", "name"]]
-
-                df = pd.merge(df, label_df, on= "ticker", how="inner")
-
-
-                # CONVERTs VALUE TO EUR
-                currencies = list(df["currencyCode"].unique())
-                if currencies != ["EUR"]:
-                    xcg = t.xchange2euro (currencies) # RETURNS THE EXCHANGE RATE "ARGUMENT/EURO"
-                    for cur in currencies:
-                        df.loc[df["currencyCode"] == cur, "value"] *= xcg[cur]
-                                    
-                df["value"] = df["value"].apply(lambda x: round(x,2))            
-                df = df.sort_values(by="value", ascending=False)
-                df = df[["asset", "value", "name"]]
-                
-
-            # PARSE CASH ------------------------------------------
-            if command == CASH_CMD:
-                df = pd.DataFrame.from_dict(self.data[command], orient="index", columns=["Value"]).T
-                # OPTIONAL CODE BELOW! THIS IS JUST HOW I LIKE TO PARSE MY DATA!
-                # Cash: Only shows the free account cash
-                df = df ["free"].reset_index()
-                df.loc[0, "index"] = "Cash"
+        return df
     
 
-            # PARSE PIES -----------------------------------------------
-            if command == PIES_CMD:
-                df = pd.json_normalize(self.data[command])
+    def parse_instruments(self, instruments: json, custom=False) -> DataFrame:
 
-                # OPTIONAL CODE BELOW! THIS IS JUST HOW I LIKE TO PARSE MY DATA!
-                # Pies: only shows the total value with Custom Labels
+        """
+        Parses the Json file into a Dataframe.
+        Args: 
+        instruments = instruments data json file 
+        Custom = set to true to run the optional block of code
+        """
+        df = DataFrame(instruments)
 
-                # LOAD JSON DATA FOR PIE LABLES
-                pie_label_path = os.path.join(os.path.abspath("./"), "resources", "t212_pie_labels.json")
-                with open(pie_label_path) as pie_label_files:
-                    pie_labels_json = json.load(pie_label_files)
+        if custom is True:
+            # CUSTOMIZABLE DATA PROCESSING
+            pass
 
-                # CREATE A DF WITH PIE LABELS
-                pie_labels_df = pd.DataFrame(pie_labels_json).T.reset_index()
-                pie_labels_df.rename(columns={"index":"id"}, inplace=True)
-                pie_labels_df["id"] = pie_labels_df["id"].astype(int)
+        return df
+    
 
-                # MERGE DATAFRAMES
-                df = pd.merge(df,pie_labels_df, on="id", how="inner")
-                del pie_labels_df
+    def parse_pies(self, pies: json, custom=False) -> DataFrame:
+        """
+        Parses the Json file into a Dataframe.
+        Args: 
+        pies = pies data json file 
+        Custom = set to true to run the optional block of code
+        """
 
-                # FILTER AND RENAME COLUMNS
-                df = df [[0, "result.value", 1]]
-                df.columns = ["Asset", "Value","Name"]
-                
+        df = pd.json_normalize(pies)
 
-            # STORE AS CLASS ATRIBUTE
-            setattr(self,command, df)
+        if custom is True:
+            # CUSTOMIZABLE DATA PROCESSING
 
+            # LOAD JSON DATA FOR PIE LABLES
+            pie_label_path = os.path.join(os.path.abspath("./"), "resources", "t212_pie_labels.json")
+            with open(pie_label_path) as pie_label_files:
+                pie_labels_json = json.load(pie_label_files)
+
+            # CREATE A DF WITH PIE LABELS
+            pie_labels_df = pd.DataFrame(pie_labels_json).T.reset_index()
+            pie_labels_df.rename(columns={"index":"id"}, inplace=True)
+            pie_labels_df["id"] = pie_labels_df["id"].astype(int)
+
+            # MERGE DATAFRAMES
+            df = pd.merge(df,pie_labels_df, on="id", how="inner")
+            del pie_labels_df
+
+            # FILTER AND RENAME COLUMNS
+            df = df [[0, "result.value", 1]]
+            df.columns = ["Asset", "Value","Name"]
+
+        return df
+
+
+    def parse_portfolio(self, portfolio: json, custom=False) -> DataFrame:
+        df = DataFrame(portfolio)
+
+        """
+        Parses the Json file into a Dataframe.
+        Args: 
+        portfolio = portfolio data json file 
+        Custom = set to true to run the optional block of code
+        """
+        
+        if custom is True:
+            # CUSTOMIZABLE DATA PROCESSING
+
+            # FILTER OUT PIE INVESTMENS & CALCULATE POSITION VALUE
+            df = df[df["frontend"] != "AUTOINVEST"]
+            df["value"] = df["quantity"] * df["currentPrice"]
+
+            # ADD LABELS
+            df['asset'] = ["Corporate equity"] * len(df) 
+
+            instrument_label_path = os.path.join(os.path.abspath("./"), "resources", "T212_Labels.csv")            
+            label_df = pd.read_csv(instrument_label_path)[["ticker", "currencyCode", "name"]]
+
+            df = pd.merge(df, label_df, on= "ticker", how="inner")
+
+
+            # CONVERTs VALUE TO EUR
+            currencies = list(df["currencyCode"].unique())
+            if currencies != ["EUR"]:
+                xcg = t.xchange2euro (currencies) # RETURNS THE EXCHANGE RATE "ARGUMENT/EURO"
+                for cur in currencies:
+                    df.loc[df["currencyCode"] == cur, "value"] *= xcg[cur]
+                                
+            df["value"] = df["value"].apply(lambda x: round(x,2))            
+            df = df.sort_values(by="value", ascending=False)
+            df = df[["asset", "value", "name"]]
+
+        return df
+   
+ 
+    def control(self, cash:bool=False, portfolio:bool=False, pies:bool=False, instruments:bool=False, parse:bool=False, custom_parse:bool=False) -> dict [str, str|float|DataFrame]:
+        """"
+        This method controls the entire class in one go.
+       Args: choose which data you want to retrieve + if you want to parse it
+
+       Returns a dictionary containing the requested json data.
+
+       The dictionary will contain DataFrames if parse == True
+        """
+        output = {}
+
+        if cash is True:
+            cash_data = self.cash
+            if parse is True:
+                cash_data = self.parse_cash(cash_data, custom=custom_parse)
+
+            output["cash"] = cash_data
+
+        if instruments is True:
+            insturments_data = self.instruments
+            if parse is True:
+                insturments_data = self.parse_instruments(insturments_data, custom=custom_parse)
+
+            output["instruments"] = insturments_data
+        
+        if pies is True:
+            pies_data = self.pies
+            if parse is True:
+                pies_data = self.parse_pies(pies_data, custom=custom_parse)
+            
+            output["pies"] = pies_data
+
+        if portfolio is True:
+            portfolio_data = self.portfolio
+            if parse is True:
+                portfolio_data = self.parse_portfolio(portfolio_data, custom=custom_parse)
+            
+            output["portfolio"] = portfolio_data
+        
+        return output
+
+       
 
 # SAMPLE CODE
+t212 = T212()
 
-api = T212()
+# 1- Individual Properties
+cash = t212.cash
+cash = t212.parse_cash(cash, custom=True)
 
-api.get("cash")
-api.get("portfolio")
-api.get("pies")
-api.get("instruments")
-api.parse()
+portfolio = t212.portfolio
+portofio = t212.parse_portfolio(portfolio, custom=True)
 
-with open("t212_allData.json", "w") as save_file:
-    json.dump(api.data, save_file, indent=4)
+pies = t212.pies
+pies = t212.parse_pies(pies, custom=True)
 
-api.cash.to_excel("t212_cash.xlsx")
-api.portfolio.to_excel("t212_portfolio.xlsx")
-api.pies.to_excel("t212_pies.xlsx")
-api.instruments.to_csv("t212_instruments.csv")
 
-# Output stored in Sample data (redacted)
+# 2 - Control Function
+  
+settings = {
+    "cash": True,
+    "instruments": False,
+    "portfolio": True,
+    "pies": True,
+    "parse": True,
+    "custom_parse": True,
+    }
+
+    data_dict = t212.control(**settings)
+     # This will return a dictionary with 3 dataframes:
+     #{"cash": DataFrame,
+     #"portfolio": DataFrame,
+     #"pies": DataFrame,}
+    
