@@ -27,6 +27,9 @@ class T212():
    
 
     def _fetch_resources(self):
+         """
+        Loads the configuration file
+        """
         config_path = os.path.join(os.path.abspath("./"), "resources", "t212_config.json")
         with open (config_path) as r_file:
             self.resources = json.load(r_file)
@@ -53,21 +56,28 @@ class T212():
 
     @property
     def instruments (self) -> json:
+         """
+        Makes a request to the api endpoint and returns a json file
+        """
         return self._get_data("instruments")
   
 
     @property
     def pies (self) -> json:
+         """
+        Makes a request to the api endpoint and returns a json file
+        """
         return self._get_data("pies")
 
 
     @property
     def portfolio(self) -> json:
+         """
+        Makes a request to the api endpoint and returns a json file
+        """
         return self._get_data("portfolio")
        
     
-
-
 
         
  
@@ -230,14 +240,14 @@ class T212():
 t212 = T212()
 
 # 1- Individual Properties
-cash = t212.cash
-cash = t212.parse_cash(cash, custom=True)
+cash = t212.cash # Cash = Json dict with the cash data
+cash = t212.parse_cash(cash, custom=False) # Cash = DataFrame with  cash data
 
-portfolio = t212.portfolio
-portofio = t212.parse_portfolio(portfolio, custom=True)
+portfolio = t212.portfolio # portfolio = json dict with portfolio data
+portofio = t212.parse_portfolio(portfolio, custom=False) # portfolio = DataFrame with portfolio data
 
-pies = t212.pies
-pies = t212.parse_pies(pies, custom=True)
+pies = t212.pies # pies = json dict with the pies data
+pies = t212.parse_pies(pies, custom=False) # pies = DataFrame with the pies data
 
 
 # 2 - Control Function
@@ -249,7 +259,7 @@ t212_settings = {
                 "portfolio": True,
                 "pies": True,
                 "parse": True,
-                "custom_parse": True,
+                "custom_parse": False,
                 }
 t212_dict = t212.control(**t212_settings)
 # This will return a dictionary with 3 dataframes:
