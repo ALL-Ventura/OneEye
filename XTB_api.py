@@ -28,6 +28,9 @@ class XTB():
  
   
     def _fetch_resources(self):
+        """
+        Loads the configuration file
+        """
         c_path = os.path.join(os.path.abspath("./"), "resources", "xtb_config.json")
         with open (c_path) as c_file:
             self._commands = json.load(c_file)
@@ -38,14 +41,16 @@ class XTB():
         Converts dictionary commands into json string and sends them to the websocket
         
         """
-        json_string_command = json.dumps(self._commands[command])
+        dictionary_commands = self._commands[command]
+        json_string_command = json.dumps(dictionary_commands)
         self._wss.send(json_string_command)
         return self._wss.recv()
 
 
     def _connect_wss(self):
     
-        # CONNECTS TO THE WEBSOCKET 
+        """ Connects to the Websocket and sends login command """
+        
         # websocket.enableTrace(True) # FOR DEBUGGING
         WEBSOCKET_URN = "wss://ws.xtb.com/real"
         self._wss = websocket.create_connection(WEBSOCKET_URN)
@@ -71,20 +76,28 @@ class XTB():
 
     @property
     def trades(self) -> json:
+        """ Sends a command to the Websocket and returns Json data """
         return self._get("trades")
 
     
     @property
     def symbols(self) -> json:
+        """ Sends a command to the Websocket and returns Json data """
         return self._get("symbols")
     
     @property
     def margin(self) -> json:
+        """ Sends a command to the Websocket and returns Json data """
         return self._get("margin")
       
 
     def parse_trades(self, trades, custom=False) -> DataFrame:
-        """ Parses the json data into dataframes"""   
+        """ Parses the json data into dataframes \n
+        Args: \n
+        Trades = trades json data \n
+        custom = set to true to run the option code block        
+        
+        """   
 
         df = pd.json_normalize(trades["returnData"])
 
@@ -107,7 +120,12 @@ class XTB():
 
 
     def parse_margin(self, margin, custom=False) -> DataFrame:
-        """ Parses the json data into dataframes"""   
+        """ Parses the json data into dataframes \n
+        Args: \n
+        margin = margin json data \n
+        custom = set to true to run the option code block        
+        
+        """   
 
         df = pd.DataFrame.from_dict(margin["returnData"], orient="index", columns=["Value"]).T
         
@@ -120,6 +138,12 @@ class XTB():
 
 
     def parse_symbols(self, symbols, custom=False) -> DataFrame:
+        """ Parses the json data into dataframes \n
+        Args: \n
+        symbols = symbols json data \n
+        custom = set to true to run the option code block        
+        
+        """   
         """ Parses the json data into dataframes"""     
         df = DataFrame(symbols["returnData"])
 
@@ -172,11 +196,11 @@ class XTB():
 xtb = XTB()
 
 # 1- Individual Properties
-margin = xtb.margin
-margin = xtb.parse_margin(margin, custom=True)
+margin = xtb.margin # margin = dictionary with the margin data
+margin = xtb.parse_margin(margin, custom=False) # margin = DataFrame with the margin data
 
-trades = xtb.trades
-trades = xtb.parse_trades(trades, custom=True)
+trades = xtb.trades # trades = dictionary with the trades data
+trades = xtb.parse_trades(trades, custom=False) # trades = DataFrame with the trades data
 
 # 2 - Control Function
   
@@ -185,7 +209,7 @@ xtb_settings = {
                 "margin":True, 
                 "symbols":False, 
                 "parse": True, 
-                "custom_parse": True, 
+                "custom_parse": False, 
                 }
 
 xtb_dict = xtb.control(**xtb_settings)
